@@ -1,15 +1,43 @@
 package com.tinah.payment.service;
+
 import com.tinah.payment.dto.CreatePaymentRequest;
-import com.tinah.payment.model.*;
+import com.tinah.payment.model.Payment;
+import com.tinah.payment.model.PaymentStatus;
+import com.tinah.payment.repository.PaymentRepository;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
-import java.time.Instant; import java.util.*; import java.util.concurrent.ConcurrentHashMap;
+import java.time.Instant;
+import java.util.NoSuchElementException;
+import java.util.UUID;
+
 @Service
 public class PaymentService {
- private final Map<UUID,Payment> payments=new ConcurrentHashMap<>(); private final Map<String,UUID> keys=new ConcurrentHashMap<>();
- public Payment create(CreatePaymentRequest r){
-   UUID existing=keys.get(r.idempotencyKey()); if(existing!=null)return payments.get(existing);
-   Payment p=new Payment(UUID.randomUUID(),r.idempotencyKey(),r.payerId(),r.merchantId(),r.amount(),r.currency(),PaymentStatus.COMPLETED,Instant.now());
-   payments.put(p.id(),p); keys.put(r.idempotencyKey(),p.id()); return p;
- }
- public Payment get(UUID id){return Optional.ofNullable(payments.get(id)).orElseThrow(()->new NoSuchElementException("Payment not found: "+id));}
+    private final PaymentRepository repository;
+    private final KafkaTemplate<String, String> kafkaTemplate;
+
+    public PaymentService(PaymentRepository repository, KafkaTemplate<String, String> kafkaTemplate) {
+        this.repository = repository;
+        this.kafkaTemplate = kafkaTemplate;
+    }
+
+    @CircuitBreaker(name = "paymentProcessing", fallbackMethod = "paymentFallback")
+    public Payment create(CreatePaymentRequest request) {
+        return repository.findByIdempotencyKey(request.idempotencyKey()).orElseGet(() -> {
+            Payment payment = new Payment(UUID.randomUUID(), request.idempotencyKey(), request.payerId(), request.merchantId(),
+                    request.amount(), request.currency(), PaymentStatus.COMPLETED, Instant.now());
+            Payment saved = repository.save(payment);
+            kafkaTemplate.send("payment-events", saved.getId().toString(),
+                    "PAYMENT_COMPLETED|" + saved.getId() + "|" + saved.getMerchantId() + "|" + saved.getAmount());
+            return saved;
+        });
+    }
+
+    public Payment paymentFallback(CreatePaymentRequest request, Throwable throwable) {
+        throw new IllegalStateException("Payment service temporarily unavailable", throwable);
+    }
+
+    public Payment get(UUID id) {
+        return repository.findById(id).orElseThrow(() -> new NoSuchElementException("Payment not found: " + id));
+    }
 }
