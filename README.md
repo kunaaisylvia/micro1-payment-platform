@@ -1,6 +1,6 @@
 # PayFlow — Java Spring Boot Microservices Payment Platform
 
-A production-style Spring Boot microservices payment platform built as an interview and portfolio project for backend engineering roles.
+A production-style Spring Boot microservices payment platform built as a portfolio project for backend engineering roles.
 
 ## Architecture
 
@@ -78,8 +78,6 @@ curl -X POST http://localhost:8080/api/v1/payments \
 
 A repeated request with the same idempotency key returns the existing payment rather than creating a duplicate transaction.
 
-## Interview talking points
+## Production Considerations
 
-This project demonstrates practical decisions around service boundaries, database ownership, idempotent payment APIs, asynchronous events, stateless authentication, resilience, observability, containerization, testing, and CI/CD.
-
-For production, the next hardening steps would include a managed Kafka/PostgreSQL setup, secrets management, mTLS/service identity, distributed tracing, an outbox pattern for guaranteed event publication, stronger authorization/RBAC, database migrations with Flyway, and load testing.
+For a production deployment, the platform can be extended with managed PostgreSQL and Kafka infrastructure, secrets management, service-to-service identity, distributed tracing, an outbox pattern for reliable event publication, role-based access control, database migrations with Flyway, and load testing.
