@@ -1,10 +1,36 @@
 spring:
   application:
     name: payment-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/payments}
+    username: ${DB_USERNAME:payments}
+    password: ${DB_PASSWORD:payments}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
 server:
   port: 8081
+security:
+  jwt:
+    secret: ${JWT_SECRET:change-this-development-secret-key-to-a-long-32-byte-value}
+resilience4j:
+  circuitbreaker:
+    instances:
+      paymentProcessing:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
 management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
