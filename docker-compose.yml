@@ -1,0 +1,10 @@
+services:
+  payment-service:
+    build: ./payment-service
+    ports: ["8081:8081"]
+  wallet-service:
+    build: ./wallet-service
+    ports: ["8082:8082"]
+  notification-service:
+    build: ./notification-service
+    ports: ["8083:8083"]
