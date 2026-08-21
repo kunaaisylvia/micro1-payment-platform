@@ -1,4 +1,4 @@
-# Micro1 Backend Java — Payment Microservices
+# PayFlow — Java Spring Boot Microservices Payment Platform
 
 A production-style Spring Boot microservices payment platform built as an interview and portfolio project for backend engineering roles.
 
